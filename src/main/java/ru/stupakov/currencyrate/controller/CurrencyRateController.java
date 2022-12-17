@@ -25,6 +25,26 @@ public class CurrencyRateController {
     private final CurrencyRateServiceImpl currencyRateService;
 
 
+    /**
+     * Post запрос, который берет информацию с официального сайт центробанка рф по соотношению
+     * рубля к конкретной валюте на конкретную дату: https://www.cbr.ru/scripts/XML_daily.asp
+     * Тип запроса: POST
+     * Url: /currency
+     * @param request
+     * тело запроса:
+     * {
+     *     "date" : "02/02/2020",
+     *     "charName" : "EUR"
+     * }
+     * @return
+     * Формат ответа:
+     *{
+     *     "charCode": "EUR",
+     *     "nominal": 1,
+     *     "name": "Евро",
+     *     "value": 69.5976
+     * }
+     */
     @PostMapping()
     public CurrencyRateResponse getCurrency(@RequestBody CurrencyRateRequest request){
         return currencyRateService.getCurrentRateByDateAndCharName(request);

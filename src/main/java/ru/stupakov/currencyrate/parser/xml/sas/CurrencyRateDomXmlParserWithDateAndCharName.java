@@ -32,15 +32,14 @@ public class CurrencyRateDomXmlParserWithDateAndCharName implements CurrencyRate
 
     private final CBConfig cbConfig;
 
-    @Override
-    public Optional<CurrencyRate> parseByDateAndCharName(String date, String charName)  {
-        Optional<CurrencyRate> rate = Optional.empty();
-
+    private boolean checkCorrectDateFormat(String date){
         if (!Pattern.matches("^([0-9]{2}/[0-9]{2}/[0-9]{4})$", date)) {
-           throw new DateNotCorrectException("Error: Date " + date + " has incorrect format. It should be '00/00/0000'");
-        }
+            throw new DateNotCorrectException("Error: Date " + date + " has incorrect format. It should be '00/00/0000'");
+        } else
+            return true;
+    }
 
-        //Get Document Builder
+    private Document buildDocument(String url){
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = null;
         try {
@@ -49,29 +48,46 @@ public class CurrencyRateDomXmlParserWithDateAndCharName implements CurrencyRate
             e.printStackTrace();
         }
 
-        //Build Document
-        String url = cbConfig.getUrl()+"?date_req="+date;
-        Document document = null;
+        Document document;
         try {
             document = Objects.requireNonNull(builder).parse(new URL(url).openStream());
         } catch (SAXException | IOException e) {
             throw new NotFoundCurrencyRateException("Error: Url = '" + url + "' incorrect.");
         }
+        return document;
 
-        //Normalize the XML Structure; It's just too important !!
+    }
+
+    //filter with charCode
+    private XPathExpression filterWithCharCode(Document document, String charName){
         document.getDocumentElement().normalize();
 
-        //filter with charCode = USD
         XPathFactory pathFactory = XPathFactory.newInstance();
         XPath xpath = pathFactory.newXPath();
-        XPathExpression expr = null;
+        XPathExpression expr;
+
         try {
             expr = xpath.compile("ValCurs/Valute[CharCode='"+charName+"']");
         } catch (XPathExpressionException e) {
             throw new NotFoundXMLObject("Error: XML object 'ValCurs/Valute[CharCode='"+charName+"']' not found");
         }
+        return expr;
 
-        NodeList nList = null;
+    }
+
+
+    @Override
+    public Optional<CurrencyRate> parseByDateAndCharName(String date, String charName)  {
+        Optional<CurrencyRate> rate = Optional.empty();
+
+        checkCorrectDateFormat(date);
+
+        String url = cbConfig.getUrl()+"?date_req="+date;
+        Document document = buildDocument(url);
+
+        XPathExpression expr = filterWithCharCode(document, charName);
+
+        NodeList nList;
         try {
             nList = (NodeList) expr.evaluate(document, XPathConstants.NODESET);
         } catch (XPathExpressionException e) {

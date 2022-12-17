@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+
+  app:
+    image: "dearestman/currency-rate"
+    container_name: 'currency-rate'
+    ports:
+      - 8003:8003
